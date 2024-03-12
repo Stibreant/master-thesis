@@ -4,8 +4,13 @@ import pandas as pd
 from sqlalchemy import create_engine, text, MetaData, Table, Column, Integer, String, Boolean, Float
 import xmltodict, json
 import sched, time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
+
+from traffic import create_traffic_table, generate_platform_table, main_traffic
+
+timezone_offset = 1  # European Standard Time (UTC+01:00)
+tzinfo = timezone(timedelta(hours=timezone_offset))
 
 def fetch_data(engine, scheduler):
     scheduler.enter(15, 1, fetch_data, (engine,scheduler))
@@ -96,13 +101,13 @@ def log(engine, scheduler):
     with engine.connect() as conn:
         count = conn.execute(text("SELECT COUNT(*) FROM Vehicles")).fetchone()[0]
         with open("log.csv", "a") as file:
-                file.write(f"{datetime.now()}, {count}, {os.stat("test.db").st_size/1_000_000}\n")
+                file.write(f"{datetime.now(tzinfo)}, {count}, {os.stat('test.db').st_size/1_000_000}\n")
 
 def printer(engine, scheduler):
     scheduler.enter(600, 1, printer, (engine,scheduler))
     with engine.connect() as conn:
         count = conn.execute(text("SELECT COUNT(*) FROM Vehicles")).fetchone()[0]
-        print(f"({datetime.now()})   # rows: {count}    filesize: {os.stat("test.db").st_size/1_000_000} MB")
+        print(f"({datetime.now(tzinfo)})   # rows: {count}    filesize: {os.stat('test.db').st_size/1_000_000} MB")
 
 if __name__ == '__main__':
     engine = create_engine('sqlite:///test.db', echo=False)
@@ -113,7 +118,12 @@ if __name__ == '__main__':
     fetch_data(engine, my_scheduler)
     log(engine, my_scheduler)
     printer(engine, my_scheduler)
-# my_scheduler.enter(0, 1, fetch_data, (engine,my_scheduler))
+    # lines_to_check = [1033, 1007, 1004, 1008, 1012] # x60, 6, 3, 7, 42
+
+    create_traffic_table(engine)
+    generate_platform_table(engine)
+    lines_to_check = pd.read_sql_query(f'SELECT * FROM LinesToWatch', engine)["buses"].values.tolist()
+    main_traffic(engine, my_scheduler, lines_to_check)
     my_scheduler.run()
 
     engine.dispose()
