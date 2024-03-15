@@ -9,6 +9,8 @@ import os
 
 from traffic import create_traffic_table, generate_platform_table, main_traffic
 
+DEBUGGING = True
+
 timezone_offset = 1  # European Standard Time (UTC+01:00)
 tzinfo = timezone(timedelta(hours=timezone_offset))
 
@@ -35,6 +37,7 @@ def fetch_data(engine, scheduler):
         
 
     normal = pd.json_normalize(VehicleActivities)
+    test = pd.json_normalize(VehicleActivities, sep="")
 
     # Sometimes the new data might have arrived before the old data is not valid anymore
     # This leads to the same vehicle being in the list twice in the same response
@@ -53,6 +56,18 @@ def fetch_data(engine, scheduler):
             print("FATAL")
             print(e)
             trans.rollback()
+    
+    post_data(test)
+
+def post_data(normal):
+    url = "http://localhost:5143/data"
+    headers = {'Content-type': 'application/json'}
+    data = normal.to_json(orient='records')
+    try: 
+        response = requests.post(url, data=data, headers=headers)
+        print(response.content)
+    except:
+        pass
 
 
 def create_table(engine):
@@ -122,8 +137,9 @@ if __name__ == '__main__':
 
     create_traffic_table(engine)
     generate_platform_table(engine)
-    lines_to_check = pd.read_sql_query(f'SELECT * FROM LinesToWatch', engine)["buses"].values.tolist()
-    main_traffic(engine, my_scheduler, lines_to_check)
+    if not DEBUGGING:
+        lines_to_check = pd.read_sql_query(f'SELECT * FROM LinesToWatch', engine)["buses"].values.tolist()
+        main_traffic(engine, my_scheduler, lines_to_check)
     my_scheduler.run()
 
     engine.dispose()

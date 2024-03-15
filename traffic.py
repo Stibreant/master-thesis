@@ -35,8 +35,12 @@ def find_specific_journey(engine: Engine, line):
     hasBoth = hasDestination[mask]
 
     latestRidep = hasBoth[hasBoth["RecordedAtTime"] == hasBoth["RecordedAtTime"].max()]
+    if latestRidep.empty:
+        return None, None
     # Find latest ride where destination is different from latestRidep
     other = hasBoth[hasBoth["MonitoredVehicleJourney.DestinationRef"] != latestRidep["MonitoredVehicleJourney.DestinationRef"].values[0]]
+    if other.empty:
+        return latestRidep, None
     latestOther = other[other["RecordedAtTime"] == other["RecordedAtTime"].max()]
     return latestRidep, latestOther
 
@@ -292,8 +296,10 @@ def main_traffic(engine: Engine, scheduler: scheduler ,lines_to_check: list[int]
     for line in lines_to_check:
         checking_lines += f'"{line}, '
         specific_journey, reversed_specifc_journey = find_specific_journey(engine, line)
-        specific_journey_pipeline(engine, specific_journey)
-        specific_journey_pipeline(engine,reversed_specifc_journey)
+        if specific_journey:
+            specific_journey_pipeline(engine, specific_journey)
+        if reversed_specifc_journey:
+            specific_journey_pipeline(engine,reversed_specifc_journey)
 
     print("Checking lines: ", checking_lines)
     
