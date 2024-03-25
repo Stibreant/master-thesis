@@ -1,5 +1,6 @@
 using backend;
 using backend.Hubs;
+using backend.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IAIService, OpenAIService>();
 // ADD DBContext
 
 var app = builder.Build();

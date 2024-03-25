@@ -6,13 +6,33 @@ namespace backend.Hubs;
 
 public class DataHub : Hub
 {
-    private readonly OpenAIService _openAIService = new OpenAIService();
-    public async Task NewMessage(ChatMessage[] messages)
+    private readonly IAIService _openAIService;
+
+    public DataHub(IAIService openAIService)
     {
-        ChatMessage message = new ChatMessage();
-        message.role = "bot";
-        message.Content = "This is new";
-        var answer = await _openAIService.SendChat(messages);
-        await Clients.All.SendAsync("messageReceived", answer);
+        _openAIService = openAIService;
+    }
+    public async Task NewMessage(ChatMessage[] messages, object[] tools)
+    {
+        OpenAIResponse answer;
+        try
+        {
+        answer = await _openAIService.SendChat(messages, tools);
+
+        }
+        catch (Exception ex) 
+        {
+            await Clients.All.SendAsync("messageReceived", ex);
+            return;
+        }
+
+        if (answer.Choices[0].Message.tool_calls != null && answer.Choices[0].Message.tool_calls.Length > 0)
+        {
+            await Clients.All.SendAsync("messageReceived", $"Calling function `{answer.Choices[0].Message.tool_calls![0].Function.Name}`");
+            await Clients.All.SendAsync("callFunction", answer.Choices[0].Message.tool_calls![0].Function.Name, answer.Choices[0].Message.tool_calls![0].Function.Arguments);
+            return;
+        }
+        
+        await Clients.All.SendAsync("messageReceived", answer.Choices[0].Message.Content);
     }
 }

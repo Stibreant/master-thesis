@@ -4,23 +4,40 @@ using System.Text;
 
 namespace backend.Services
 {
-    public class OpenAIService
+    public interface IAIService
     {
-        public async Task<string> SendChat(ChatMessage[] Messages)
+        public Task<OpenAIResponse> SendChat(ChatMessage[] Messages, object[] tools);
+    }
+
+    public class OpenAIService : IAIService
+    {
+        private string _openAiKey {  get; set; }
+        public OpenAIService(IConfiguration configuration)
+        {
+            var key = configuration.GetValue<string>("OPEN_AI_KEY");
+            if (key == null) { throw new ArgumentNullException(nameof(configuration)); }
+            _openAiKey = key;
+        }
+
+        public async Task<OpenAIResponse> SendChat(ChatMessage[] Messages, object[] tools)
         {
             HttpClient client = new HttpClient();
             client.BaseAddress = new Uri("https://api.openai.com/v1/chat/");
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "completions");
-            string key = "[YOUR_API_KEY]";
+            string? key = _openAiKey;
+            if (key == null) throw new Exception($"Unable to get OpenAI Key");
+
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {key}");
             request.Headers.Add("Authorization", $"Bearer {key}");
 
             var options = new JsonSerializerOptions
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull, 
             };
 
-            StringContent content = new StringContent(JsonSerializer.Serialize(new OpenAIRequest("gpt-3.5-turbo", Messages), options), Encoding.UTF8, "application/json");
+            string contentString = JsonSerializer.Serialize(new OpenAIRequest("gpt-3.5-turbo", Messages, tools), options);
+            StringContent content = new StringContent(contentString, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response = await client.PostAsync("completions", content);
 
@@ -32,11 +49,11 @@ namespace backend.Services
                 // Parse the JSON string into a JObject
                 OpenAIResponse json = JsonSerializer.Deserialize<OpenAIResponse>(jsonString, options)!;
 
-                return json.Choices[0].Message.Content!;
+                return json;
 
             }
 
-            return "ERROR: Request Failed";
+            throw new Exception($"Request failed:\n {await response.Content.ReadAsStringAsync()}");
         }
     }
 }

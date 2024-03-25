@@ -4,6 +4,7 @@ import Markdown from "react-markdown";
 import rehypeHighlight from 'rehype-highlight'
 // import "highlight.js/styles/github.css";
 import 'highlight.js/styles/github-dark.css';
+import filterDataSpec from "../functions/filterData";
 
 export type Message = {
     role: string;
@@ -11,11 +12,7 @@ export type Message = {
 }
 
 const ChatComponent = () => {
-    const [messages, setMessages] = useState<Message[]>([
-        { role: "assistant", content: "Welcome to the chat" },
-        { role: "user", content: "Thank you" },
-        { role: "assistant", content: "Please ask me anything!" },
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<Message>();
     const { sendNewMessage, events } = Connector();
     useEffect(() => {
@@ -23,7 +20,7 @@ const ChatComponent = () => {
             let allMessages = [...messages, { role: "assistant", content: message }]
             // debugger;
             setMessages(allMessages)
-        }, (_) => { return });
+        }, (_) => { return }, (name, args) => { return });
     });
 
     const MessageFromAI = (message: Message) => {
@@ -35,7 +32,8 @@ const ChatComponent = () => {
         var allmessages = messages.concat(newMessage);
         setMessages(allmessages);
         setNewMessage({ role: "user", content: "" });
-        sendNewMessage(allmessages);
+        let tools = [filterDataSpec]
+        sendNewMessage(allmessages, tools);
     }
 
     return (

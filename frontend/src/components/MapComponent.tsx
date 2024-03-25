@@ -20,9 +20,22 @@ const getCustomIcon = (rotationDegree: number, lineNumber: string) => {
 const MapComponent = () => {
   const [coordinates] = useState<LatLngExpression>([58.93730820230997, 5.697275755646442])
   const [busData, setBusData] = useState<any>([])
+  const [displayedData, setDisplayedData] = useState<any>([]);
+  const [filter, setFilter] = useState<string[]|null>(null)
   const { events } = Connector();
   useEffect(() => {
-    events((_) => { return }, (data) => setBusData(data));
+    events((_) => { return }, (data) => setBusData(data), (name: string, args: any) => {
+      console.log(busData)
+      if (name === "filterData") {
+        args = JSON.parse(args);
+        if (!args.key || !args.filter || args.key === "" || args.filter === "") {
+          setFilter(null);
+          return;
+        }
+        console.log("Filtering data", args.key, args.filter)
+        setFilter([args.key, args.filter])
+      }
+    });
     // Fetch latest data
     if (busData.length === 0) {
 
@@ -35,24 +48,21 @@ const MapComponent = () => {
     }
   });
 
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setMessage("sent")
-  //     newMessage("Hello from the frontend")
-  //   }, 1000);
-  // }, []);
+  useEffect(() => {
+    if (!filter) {
+      setDisplayedData(busData)
+    }
+    else {
+      filterData(filter[0], filter[1])
+    }
+  }, [busData, filter])
 
-  // useEffect(() => {
-  //   let response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/data/KOL:ServiceJourney:1033_240111106398057_3002`)
-  //   response.json().then(data => {
-  //     let x = data.coordinates.map((coord: any) => [coord[1], coord[0]])
-  //     setPolyline(x)
-  //     // map.flyTo(x[0])
-  //     // map.fitBounds([x[0], x[x.length - 1]])
-  //     map.flyToBounds([x[0], x[x.length - 1]])
-  //     // alert(data)
-  //   })
-  // },[])
+  const filterData = (key: string, filter: any) => {
+    let filteredData = busData.filter((bus: any) => {
+      return bus[key] === filter;
+    });
+    setDisplayedData(filteredData);
+  }
 
 
   return (
@@ -72,7 +82,7 @@ const MapComponent = () => {
               A pretty CSS3 popup. <br /> Easily customizable.
             </Popup>
           </Marker>
-          <TestComponent busData={busData} />
+          <TestComponent busData={displayedData} />
         </MapContainer>
       </div>
       {/* </div> */}
@@ -80,8 +90,7 @@ const MapComponent = () => {
   );
 }
 
-const TestComponent = ({ busData }: { busData: any }) => {
-  const [position, setPosition] = useState<LatLngExpression[]>([])
+const TestComponent = ({ busData }: { busData: any[] }) => {
   const [polyline, setPolyline] = useState<LatLngExpression[]>([])
   const [text, setText] = useState<string>("")
   const [cachedLineInfo, setCachedLineInfo] = useState<{ [key: number]: any }>({})
@@ -111,9 +120,12 @@ const TestComponent = ({ busData }: { busData: any }) => {
 
   useEffect(() => {
     if (busData && busData.length > 0) {
-      let buses = busData.map((bus: any) => [bus.monitoredVehicleJourneyVehicleLocationLatitude,
-      bus.monitoredVehicleJourneyVehicleLocationLongitude])
-      setPosition(buses);
+      // if (showAllData) {
+      //   setDisplayedData(busData)
+      // }
+      // let buses = busData.map((bus: any) => [bus.monitoredVehicleJourneyVehicleLocationLatitude,
+      // bus.monitoredVehicleJourneyVehicleLocationLongitude]) as LatLngExpression[];
+      // setPosition(buses);
     }
   }, [busData])
 
@@ -175,19 +187,18 @@ const TestComponent = ({ busData }: { busData: any }) => {
   return (
     <>
       {polyline.length !== 0 ? <Polyline positions={polyline} /> : <></>}
-      {position.length !== 0 ? <>
         {busData ? <>
-          {position.map((pos, index) => {
+          {busData.map((bus, index) => {
             return (
               // <Marker eventHandlers={{ click: () => markerOnClick(index) }} key={index} position={pos} icon={new Icon({ iconUrl: './test.png', iconSize: [32, 32] })}>
-              <Marker eventHandlers={{ click: () => markerOnClick(index), popupclose: () => setPolyline([]) }} key={index} position={pos} icon={getCustomIcon(getBearing(index), getLineNumber(index))}>
+              <Marker eventHandlers={{ click: () => markerOnClick(index), popupclose: () => setPolyline([]) }} key={bus.monitoredVehicleJourneyLineRef+bus.monitoredVehicleJourneyVehicleRef} position={[bus.monitoredVehicleJourneyVehicleLocationLatitude,
+                bus.monitoredVehicleJourneyVehicleLocationLongitude] as LatLngExpression} icon={getCustomIcon(getBearing(index), getLineNumber(index))}>
                 <Popup>{text} : {busData[index]?.monitoredVehicleJourneyMonitoredCallDestinationDisplay}</Popup>
               </Marker>
             )
 
           })}
         </> : <></>}
-      </> : <></>}
 
 
       {/* {position.map((pos, index) => {
