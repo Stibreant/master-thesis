@@ -4,7 +4,9 @@ using Microsoft.Data.SqlClient;
 using ADO.Net;
 using Microsoft.EntityFrameworkCore;
 using backend.Hubs;
+using System.Web;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace backend.Controllers;
 
@@ -12,29 +14,27 @@ namespace backend.Controllers;
 [Route("[controller]")]
 public class DataController : ControllerBase
 {
-    private static readonly string[] Summaries = new[]
-    {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
-    private readonly ILogger<WeatherForecastController> _logger;
+    private readonly ILogger<DataController> _logger;
     private readonly TestContext _db;
     private readonly IHubContext<DataHub> _dataHub;
+    private readonly IMemoryCache _memoryCache;
 
-    public DataController(ILogger<WeatherForecastController> logger, TestContext db, IHubContext<DataHub> hub)
+    public DataController(ILogger<DataController> logger, TestContext db, IHubContext<DataHub> hub, IMemoryCache memoryCache)
     {
         SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
         builder.DataSource = "";
         _logger = logger;
         _db = db;
         _dataHub = hub;
+        _memoryCache = memoryCache;
     }
 
     [HttpPost("", Name = "PostAsync")]
     public async Task<string> PostAsync([FromBody] Vehicle[] DatedframeId)
     {
-        _logger.LogInformation(JsonSerializer.Serialize(DatedframeId));
+        //_logger.LogInformation(JsonSerializer.Serialize(DatedframeId));
         //_logger.LogInformation(DatedframeId);
+        _memoryCache.Set("test", DatedframeId);
         await _dataHub.Clients.All.SendAsync("dataReceived", DatedframeId);
         return "Success";
     }
@@ -49,10 +49,11 @@ public class DataController : ControllerBase
     }
 
     [HttpGet("latest", Name = "GetLatestAsync")]
-    public string GetLatestAsync()
+    public Vehicle[]? GetLatestAsync()
     {
-        Vehicle[] lines = _db.Vehicles.Where(v => v.ResponseTimestamp == _db.Vehicles.Max(v => v.ResponseTimestamp)).ToArray();
-        return JsonSerializer.Serialize(lines);
+        //Vehicle[] lines = _db.Vehicles.Where(v => v.ResponseTimestamp == _db.Vehicles.Max(v => v.ResponseTimestamp)).ToArray();
+        //return JsonSerializer.Serialize(lines);
+        return _memoryCache.Get<Vehicle[]>("test");
     }
 
     [HttpGet("lineInfo/{line}", Name = "GetLineInfoAsync")]

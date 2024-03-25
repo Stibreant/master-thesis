@@ -27,10 +27,12 @@ def fetch_data(engine, scheduler):
     except: 
         return
 
+    try:
+        VehicleActivities = xmlAsDict["Siri"]["ServiceDelivery"]["VehicleMonitoringDelivery"]["VehicleActivity"]
 
-    VehicleActivities = xmlAsDict["Siri"]["ServiceDelivery"]["VehicleMonitoringDelivery"]["VehicleActivity"]
-
-    responseTimestamp = xmlAsDict["Siri"]["ServiceDelivery"]["ResponseTimestamp"]
+        responseTimestamp = xmlAsDict["Siri"]["ServiceDelivery"]["ResponseTimestamp"]
+    except:
+        return
 
     for i, e in enumerate(VehicleActivities):
         VehicleActivities[i]["ResponseTimestamp"] = responseTimestamp

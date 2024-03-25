@@ -38,6 +38,8 @@ def find_specific_journey(engine: Engine, line):
     if latestRidep.empty:
         return None, None
     # Find latest ride where destination is different from latestRidep
+    if latestRidep.empty:
+        return None, None
     other = hasBoth[hasBoth["MonitoredVehicleJourney.DestinationRef"] != latestRidep["MonitoredVehicleJourney.DestinationRef"].values[0]]
     if other.empty:
         return latestRidep, None
@@ -272,9 +274,12 @@ def save_responses_to_db(engine: Engine, responses , specific_journey: pd.DataFr
         # try:
         for i, response in enumerate(responses):
             # Create DataFrame from response and legs
-            list_of_data = [response["routes"][0]["duration"], response["routes"][0]["staticDuration"], response["routes"][0]["distanceMeters"], response["routes"][0]["polyline"]["encodedPolyline"], date, specific_journey["MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef"].values[0], f"{i+1}/{len(responses)}", destination]
-            df = pd.DataFrame([list_of_data], columns=["duration", "staticDuration", "distanceMeters", "polyline", "date", "service_id", "route_number", "destination"])
-            df.to_sql('Routes', conn, if_exists='append', index=False)
+            try:
+                list_of_data = [response["routes"][0]["duration"], response["routes"][0]["staticDuration"], response["routes"][0]["distanceMeters"], response["routes"][0]["polyline"]["encodedPolyline"], date, specific_journey["MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef"].values[0], f"{i+1}/{len(responses)}", destination]
+                df = pd.DataFrame([list_of_data], columns=["duration", "staticDuration", "distanceMeters", "polyline", "date", "service_id", "route_number", "destination"])
+                df.to_sql('Routes', conn, if_exists='append', index=False)
+            except:
+                pass
         trans.commit()
         # except Exception as e:
         #     print("FATAL")
@@ -284,11 +289,11 @@ def save_responses_to_db(engine: Engine, responses , specific_journey: pd.DataFr
 def main_traffic(engine: Engine, scheduler: scheduler ,lines_to_check: list[int]):
         # check if date is between 06:00 and 18:00
     current_time = datetime.now(tzinfo)
-    if current_time.hour > 6 and current_time.hour < 9 or current_time.hour < 15 or current_time.hour > 17:
-        scheduler.enter(300, 1, main_traffic, (engine,scheduler))
+    if current_time.hour > 6 and current_time.hour < 9 or current_time.hour > 15 and current_time.hour < 18:
+        scheduler.enter(300, 1, main_traffic, (engine,scheduler, lines_to_check))
         print("Traffic recorded")
     else:
-        scheduler.enter(300, 1, main_traffic, (engine,scheduler))
+        scheduler.enter(300, 1, main_traffic, (engine,scheduler, lines_to_check))
         return
     
 
@@ -296,9 +301,12 @@ def main_traffic(engine: Engine, scheduler: scheduler ,lines_to_check: list[int]
     for line in lines_to_check:
         checking_lines += f'"{line}, '
         specific_journey, reversed_specifc_journey = find_specific_journey(engine, line)
-        if specific_journey:
+        if specific_journey is None:
+            print(f"No specific journey found for line {line}")
+            continue
+        if not specific_journey.empty:
             specific_journey_pipeline(engine, specific_journey)
-        if reversed_specifc_journey:
+        if not reversed_specifc_journey.empty:
             specific_journey_pipeline(engine,reversed_specifc_journey)
 
     print("Checking lines: ", checking_lines)

@@ -1,11 +1,18 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using backend.Models;
+using backend.Services;
+using Microsoft.AspNetCore.SignalR;
 
 namespace backend.Hubs;
 
 public class DataHub : Hub
 {
-    public async Task NewMessage(string username, string message)
+    private readonly OpenAIService _openAIService = new OpenAIService();
+    public async Task NewMessage(ChatMessage[] messages)
     {
-        await Clients.All.SendAsync("messageReceived", username, message);
+        ChatMessage message = new ChatMessage();
+        message.role = "bot";
+        message.Content = "This is new";
+        var answer = await _openAIService.SendChat(messages);
+        await Clients.All.SendAsync("messageReceived", answer);
     }
 }
