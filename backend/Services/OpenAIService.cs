@@ -36,7 +36,18 @@ namespace backend.Services
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull, 
             };
 
-            string contentString = JsonSerializer.Serialize(new OpenAIRequest("gpt-3.5-turbo", Messages, tools), options);
+            // Insert instruction-message first
+            var instructionMessage = new ChatMessage[] { 
+                new ChatMessage { 
+                    role = "user", 
+                    Content = @"You are an AI in a web application that are suppose to answer any questions related to busses and public transport.
+                    You're answers should always be short and precise.
+                    When calling a function you should also provide a short explaination about what you called. 
+                    This description should be non-technical so someone with no code knowledge understands what they are looking at"} };
+
+            Messages = instructionMessage.Concat(Messages).ToArray();
+
+            string contentString = JsonSerializer.Serialize(new OpenAIRequest("gpt-4-0125-preview", Messages, tools), options);
             StringContent content = new StringContent(contentString, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response = await client.PostAsync("completions", content);

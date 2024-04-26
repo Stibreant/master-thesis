@@ -67,8 +67,8 @@ def post_data(normal):
     data = normal.to_json(orient='records')
     try: 
         response = requests.post(url, data=data, headers=headers)
-        print(response.content)
     except:
+        print("Failed to post data to server")
         pass
 
 

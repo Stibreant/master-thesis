@@ -33,9 +33,11 @@ type busDataType = {
     validUntilTime: string
 }
 
-export const busDataTypeString = `{    
-    monitoredVehicleJourneyBearing: number,
+export const busDataTypeString = `{
     monitoredVehicleJourneyDataSource: string,
+    // The bearing is a the number of degrees from north. -90 is west, 0 is north, 90 is east and 180 is south. The number is never greater than 180.
+    monitoredVehicleJourneyBearing: number,
+    // The delay is in this format: PT3M46S
     monitoredVehicleJourneyDelay: string,
     monitoredVehicleJourneyDestinationAimedArrivalTime: string,
     monitoredVehicleJourneyDestinationNameText: string, 
@@ -44,7 +46,8 @@ export const busDataTypeString = `{
     monitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef: string,
     monitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef: string,
     monitoredVehicleJourneyIsCompleteStopSequence: boolean,
-    monitoredVehicleJourneyLineRef: number, 
+    // Line reference is a number of type string
+    monitoredVehicleJourneyLineRef: string, 
     monitoredVehicleJourneyMonitored: boolean, 
     monitoredVehicleJourneyMonitoredCallDestinationDisplay: string,
     monitoredVehicleJourneyMonitoredCallStopPointName: string, 
@@ -61,6 +64,7 @@ export const busDataTypeString = `{
     monitoredVehicleJourneyVehicleMode: string,
     monitoredVehicleJourneyVehicleRef: number,
     monitoredVehicleJourneyVehicleStatus: string,
+    // The velocity is in km/h
     monitoredVehicleJourneyVelocity: number,
     recordedAtTime: string,
     responseTimestamp: string,

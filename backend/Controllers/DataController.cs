@@ -65,4 +65,52 @@ public class DataController : ControllerBase
         HttpResponseMessage response = await client.GetAsync($"/api/lines/{prefix}{line}");
         return await response.Content.ReadAsStringAsync();
     }
+
+    [HttpGet("busStops", Name = "GetBusStopsAsync")]
+    public async Task<string?> GetBusStopsAsync()
+    {
+        HttpClient client = new HttpClient();
+        client.BaseAddress = new Uri("https://api.entur.io");
+        HttpResponseMessage response = await client.GetAsync("/geocoder/v1/reverse?point.lat=58.93730820230997&point.lon=5.697275755646442&boundary.circle.radius=5&size=100&layers=venue");
+        string responseString = await response.Content.ReadAsStringAsync();
+        return responseString;
+    }
+
+    [HttpGet("TrafficData/{line}", Name = "GetTrafficData")]
+    public async Task<IEnumerable<dynamic>> GetTrafficData(int line, [FromQuery] string startTime, [FromQuery] string endTime)
+    {
+        Console.WriteLine(startTime + " " + endTime);
+        if (startTime == null || endTime == null)
+        {
+            return Enumerable.Empty<dynamic>();
+        }
+        var test2 = startTime.CompareTo("2024-04-22T11:00:00");
+        var test3 = startTime.CompareTo("2024-04-22T18:00:00");
+        DateOnly date = new DateOnly(2024, 3, 14);
+        var vehicles = _db.Vehicles
+            .Where(v => v.MonitoredVehicleJourneyLineRef == line.ToString() && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef != null && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef == date 
+            && v.RecordedAtTime.CompareTo(startTime) > 0 && v.RecordedAtTime.CompareTo(endTime) < 0)
+            .Take(1000)
+            .Select(v => new
+            {
+                RecordedAtTime = v.RecordedAtTime,
+                Key = v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef,
+                MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef = v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef,
+                MonitoredVehicleJourneyDelay = v.MonitoredVehicleJourneyDelay,
+                MonitoredVehicleJourneyVehicleLocationLatitude = v.MonitoredVehicleJourneyVehicleLocationLatitude,
+                MonitoredVehicleJourneyVehicleLocationLongitude = v.MonitoredVehicleJourneyVehicleLocationLongitude,
+
+            })
+            .ToList()
+            .GroupBy(v => v.Key)
+            .ToList();
+        var groups = new List<dynamic>();
+        for (int i = 0; i < vehicles.Count(); i++)
+        {
+            var vehicle = vehicles[i];
+            groups.Add(vehicle.GroupBy(v => v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef).ToList());
+        }
+        
+        return groups;
+    }
 }

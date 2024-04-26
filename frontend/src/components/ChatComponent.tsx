@@ -5,6 +5,7 @@ import rehypeHighlight from 'rehype-highlight'
 // import "highlight.js/styles/github.css";
 import 'highlight.js/styles/github-dark.css';
 import filterDataSpec from "../functions/filterData";
+import heatDataSpec from "../functions/heatData";
 
 export type Message = {
     role: string;
@@ -18,10 +19,15 @@ const ChatComponent = () => {
     useEffect(() => {
         events((message) => {
             let allMessages = [...messages, { role: "assistant", content: message }]
-            // debugger;
             setMessages(allMessages)
-        }, (_) => { return }, (name, args) => { return });
-    });
+        }, (_) => { return }, (name, args) => {
+            if (name === "heatData" || name === "filterData") {
+                args = JSON.parse(args);
+                let allMessages = [...messages, { role: "assistant", content: `${args.description}` }]
+                setMessages(allMessages)
+            }
+         });
+    }, [messages]);
 
     const MessageFromAI = (message: Message) => {
         return message.role === "assistant";
@@ -32,7 +38,7 @@ const ChatComponent = () => {
         var allmessages = messages.concat(newMessage);
         setMessages(allmessages);
         setNewMessage({ role: "user", content: "" });
-        let tools = [filterDataSpec]
+        let tools = [filterDataSpec, heatDataSpec]
         sendNewMessage(allmessages, tools);
     }
 

@@ -8,22 +8,23 @@ const filterDataSpec = {
         "parameters": {
             "type": "object",
             "properties": {
-                "key": {
-                    "type": "string",
-                    "description": `The key to filter the data on. For example, if you want to filter the data based on the line number, you would pass in 'monitoredVehicleJourneyLineRef'.
-                    The keys that can be chosen are from the busDataType. Empty string if no filtering is desired The busDataType is as follows:
-                    ${busDataTypeString}
-                    
-                    `
-                },
                 "filter": {
                     "type": "string",
-                    "description": ` The value to filter the data on. For example, if you want to filter the data based on the line number 123, you would pass in 123.
-                    Empty string if no filtering is desired
+                    "description": `The filter needs to be an boolean expression for the data.
+                    For example to filter out all buses with a speed over 50 the filter would be "bus.monitoredVehicleJourneyVelocity > 50".
+                    The possible keys for the bus object are in this type: ${busDataTypeString}.
+                    The expression should always be on the form bus.[key] [operator] [value] with multiple conditions possible.
+                    The filter needs to work in TypeScript.
+                    Several values may be null or undefined, so make sure to check for that in the filter.
                     `
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A description of the filter that is user-friendly and displayed in the UI. An example is 'Sure, filtering to all busses going over 50 km/h', if the prompt was asking for busses going over 50 km/h. Preferably the actual input to the filter should be included in the description."
                 }
+                
             },
-            "required": ["key", "filter"],
+            "required": ["filter"],
         },
     }
 }

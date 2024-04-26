@@ -28,7 +28,7 @@ public class DataHub : Hub
 
         if (answer.Choices[0].Message.tool_calls != null && answer.Choices[0].Message.tool_calls.Length > 0)
         {
-            await Clients.All.SendAsync("messageReceived", $"Calling function `{answer.Choices[0].Message.tool_calls![0].Function.Name}`");
+            //await Clients.All.SendAsync("messageReceived", $"Calling function `{answer.Choices[0].Message.tool_calls![0].Function.Name}`");
             await Clients.All.SendAsync("callFunction", answer.Choices[0].Message.tool_calls![0].Function.Name, answer.Choices[0].Message.tool_calls![0].Function.Arguments);
             return;
         }
