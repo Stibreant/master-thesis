@@ -47,7 +47,7 @@ namespace backend.Services
 
             Messages = instructionMessage.Concat(Messages).ToArray();
 
-            string contentString = JsonSerializer.Serialize(new OpenAIRequest("gpt-4-0125-preview", Messages, tools), options);
+            string contentString = JsonSerializer.Serialize(new OpenAIRequest("gpt-4o", Messages, tools), options);
             StringContent content = new StringContent(contentString, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response = await client.PostAsync("completions", content);
