@@ -25,20 +25,19 @@ const MapComponent = () => {
   useEffect(() => {
     events((_) => { return }, (data) => setBusData(data), (name: string, args: any) => {
       console.log(busData)
-      if (name === "filterData") {
-        args = JSON.parse(args);
-        console.log(args)
-        // if (!args.key || !args.filter || args.key === "" || args.filter === "") {
-        //   setFilter(null);
-        //   return;
-        // }
-        console.log("Filtering data", args.key, args.filter)
-        setFilter(args.filter)
-      }
+      switch (name) {
+        case "filterData":
+          args = JSON.parse(args);
+          console.log("Filtering data", args.key, args.filter)
+          setFilter(args.filter)
+          break;
+        case "heatData":
+          args = JSON.parse(args);
+          setHeatmapFilter(args)
+          break;
 
-      if (name === "heatData") {
-        args = JSON.parse(args);
-        setHeatmapFilter(args)
+        default:
+          break;
       }
     });
     // Fetch latest data

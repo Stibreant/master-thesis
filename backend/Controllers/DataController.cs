@@ -7,6 +7,9 @@ using backend.Hubs;
 using System.Web;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
+using System;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Runtime.CompilerServices;
 
 namespace backend.Controllers;
 
@@ -39,7 +42,7 @@ public class DataController : ControllerBase
         return "Success";
     }
 
-    [HttpGet("{datedframeId}",Name = "GetData")]
+    [HttpGet("{datedframeId}", Name = "GetData")]
     public async Task<string> GetAsync(string datedframeId)
     {
         HttpClient client = new HttpClient();
@@ -59,7 +62,16 @@ public class DataController : ControllerBase
     [HttpGet("lineInfo/{line}", Name = "GetLineInfoAsync")]
     public async Task<string> GetLineInfoAsync(int line)
     {
-        HttpClient client = new HttpClient();
+        var handler = new HttpClientHandler();
+        handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+        handler.ServerCertificateCustomValidationCallback =
+            (httpRequestMessage, cert, cetChain, policyErrors) =>
+        {
+            return true;
+        };
+
+        // var client = new HttpClient(handler);
+        HttpClient client = new HttpClient(handler);
         client.BaseAddress = new Uri("https://api.kolumbus.no");
         string prefix = "KOL:Line:8_";
         HttpResponseMessage response = await client.GetAsync($"/api/lines/{prefix}{line}");
@@ -88,7 +100,7 @@ public class DataController : ControllerBase
         var test3 = startTime.CompareTo("2024-04-22T18:00:00");
         DateOnly date = new DateOnly(2024, 3, 14);
         var vehicles = _db.Vehicles
-            .Where(v => v.MonitoredVehicleJourneyLineRef == line.ToString() && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef != null && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef == date 
+            .Where(v => v.MonitoredVehicleJourneyLineRef == line.ToString() && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef != null && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef == date
             && v.RecordedAtTime.CompareTo(startTime) > 0 && v.RecordedAtTime.CompareTo(endTime) < 0)
             .Take(1000)
             .Select(v => new
@@ -110,7 +122,38 @@ public class DataController : ControllerBase
             var vehicle = vehicles[i];
             groups.Add(vehicle.GroupBy(v => v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef).ToList());
         }
-        
+
         return groups;
+    }
+
+    [HttpPost("Query", Name = "QueryTrafficData")]
+    public async Task<string> QueryTrafficData([FromBody] string Query)
+    {
+        //using (var command = _db.Database.GetDbConnection().CreateCommand())
+        //{
+        //    //command.CommandText = "SELECT * From Make";
+        //    command.CommandText = Query;
+        //    _db.Database.OpenConnection();
+        //    using (var reader = command.ExecuteReader())
+        //    {
+        //        while (reader.Read())
+        //        {
+        //            entities.Add(map(result));
+        //        }
+
+        //        return entities;
+        //        //// Do something with result
+        //        //reader.Read(); // Read first row
+        //        //var firstColumnObject = reader.GetValue(0);
+        //        //var secondColumnObject = reader.GetValue(1);
+
+        //        //reader.Read(); // Read second row
+        //        //firstColumnObject = reader.GetValue(0);
+        //        //secondColumnObject = reader.GetValue(1);
+        //    }
+        //}
+        var x = _db.Vehicles.FromSqlRaw(Query).ToList();
+        return Query;
+
     }
 }
