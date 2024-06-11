@@ -1,8 +1,7 @@
 import requests
-import xml.etree.ElementTree as ET
 import pandas as pd
 from sqlalchemy import create_engine, text, MetaData, Table, Column, Integer, String, Boolean, Float
-import xmltodict, json
+import xmltodict
 import sched, time
 from datetime import datetime, timezone, timedelta
 import os
@@ -40,6 +39,8 @@ def fetch_data(engine, scheduler):
 
     normal = pd.json_normalize(VehicleActivities)
     test = pd.json_normalize(VehicleActivities, sep="")
+    normal = normal.drop(['MonitoredVehicleJourney.DirectionRef', 'MonitoredVehicleJourney.OriginName', 'MonitoredVehicleJourney.DestinationName', 'MonitoredVehicleJourney.MonitoredCall.VehicleAtStop'], axis=1)
+    normal = normal.drop('MonitoredVehicleJourney.PublishedLineName', axis=1)
 
     # Sometimes the new data might have arrived before the old data is not valid anymore
     # This leads to the same vehicle being in the list twice in the same response
@@ -128,7 +129,6 @@ def printer(engine, scheduler):
 
 if __name__ == '__main__':
     engine = create_engine('sqlite:///test.db', echo=False)
-    # create_table(engine)
 
     my_scheduler = sched.scheduler(time.time, time.sleep)
 

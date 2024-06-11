@@ -60,7 +60,7 @@ def get_polyline_from_id(service_id):
 
 def generate_platform_table(engine: Engine):
     url = "https://api.kolumbus.no/api/platforms"
-    platforms = pd.DataFrame(requests.get(url).json())
+    platforms = pd.DataFrame(requests.get(url, verify=False).json())
 
     
     # Upsert table
