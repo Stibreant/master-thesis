@@ -129,7 +129,7 @@ const HeatMapComponent = ({heatmapFilter}: HeatMapProps) => {
     console.log(params.toString())
     fetch(`${process.env.REACT_APP_BACKEND_URL}/data/TrafficData/${busLine}?${params}`).then(response => {
       response.json().then(res => {
-
+        console.log(res);
         // Calculate delta delay
         for (let k = 0; k < res.length; k++) {
           const elementDay = res[k];
@@ -186,15 +186,15 @@ const HeatMapComponent = ({heatmapFilter}: HeatMapProps) => {
     <>
       {data.length > 0 ?
         <>
-          {data.map((point: any) => {
+          {/* {data.map((point: any) => {
             return (
               <Marker position={[point["monitoredVehicleJourneyVehicleLocationLatitude"], point["monitoredVehicleJourneyVehicleLocationLongitude"]]}
                 icon={new Icon({ iconUrl: markerIconPng, iconAnchor: [12, 41] })}>
-                <Popup>{point.deltaDelay}</Popup>
+                <Popup>Difference since last point: {point.deltaDelay}s {point.recordedAtTime}</Popup>
               </Marker>
             )
           })
-          }
+          } */}
           <HeatmapLayer
             // fitBoundsOnLoad
             // fitBoundsOnUpdate

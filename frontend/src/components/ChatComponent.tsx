@@ -6,6 +6,7 @@ import rehypeHighlight from 'rehype-highlight'
 import 'highlight.js/styles/github-dark.css';
 import filterDataSpec from "../functions/filterData";
 import heatDataSpec from "../functions/heatData";
+import QueryDataSpec from "../functions/queryData";
 
 export type Message = {
     role: string;
@@ -26,6 +27,12 @@ const ChatComponent = () => {
                 let allMessages = [...messages, { role: "assistant", content: `${args.description}` }]
                 setMessages(allMessages)
             }
+            else if (name === "QueryData") {
+                args = JSON.parse(args);
+                console.log("QueryData Called with args", args)
+                let allMessages = [...messages, { role: "assistant", content: `${args.description}` }]
+                setMessages(allMessages)
+            }
          });
     }, [messages]);
 
@@ -38,7 +45,7 @@ const ChatComponent = () => {
         var allmessages = messages.concat(newMessage);
         setMessages(allmessages);
         setNewMessage({ role: "user", content: "" });
-        let tools = [filterDataSpec, heatDataSpec]
+        let tools = [filterDataSpec, heatDataSpec, QueryDataSpec]
         sendNewMessage(allmessages, tools);
     }
 

@@ -96,13 +96,10 @@ public class DataController : ControllerBase
         {
             return Enumerable.Empty<dynamic>();
         }
-        var test2 = startTime.CompareTo("2024-04-22T11:00:00");
-        var test3 = startTime.CompareTo("2024-04-22T18:00:00");
-        DateOnly date = new DateOnly(2024, 3, 14);
         var vehicles = _db.Vehicles
-            .Where(v => v.MonitoredVehicleJourneyLineRef == line.ToString() && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef != null && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDataFrameRef == date
+            .Where(v => v.MonitoredVehicleJourneyLineRef == line.ToString() && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef != null
             && v.RecordedAtTime.CompareTo(startTime) > 0 && v.RecordedAtTime.CompareTo(endTime) < 0)
-            .Take(1000)
+            .Take(10000)
             .Select(v => new
             {
                 RecordedAtTime = v.RecordedAtTime,
@@ -116,6 +113,7 @@ public class DataController : ControllerBase
             .ToList()
             .GroupBy(v => v.Key)
             .ToList();
+        Console.WriteLine(vehicles.Count());
         var groups = new List<dynamic>();
         for (int i = 0; i < vehicles.Count(); i++)
         {
@@ -127,33 +125,41 @@ public class DataController : ControllerBase
     }
 
     [HttpPost("Query", Name = "QueryTrafficData")]
-    public async Task<string> QueryTrafficData([FromBody] string Query)
+    public async Task<IEnumerable<dynamic>> QueryTrafficData([FromBody] string Query)
     {
-        //using (var command = _db.Database.GetDbConnection().CreateCommand())
-        //{
-        //    //command.CommandText = "SELECT * From Make";
-        //    command.CommandText = Query;
-        //    _db.Database.OpenConnection();
-        //    using (var reader = command.ExecuteReader())
-        //    {
-        //        while (reader.Read())
-        //        {
-        //            entities.Add(map(result));
-        //        }
+       Console.WriteLine(Query);
+        var result = new List<dynamic>();
 
-        //        return entities;
-        //        //// Do something with result
-        //        //reader.Read(); // Read first row
-        //        //var firstColumnObject = reader.GetValue(0);
-        //        //var secondColumnObject = reader.GetValue(1);
+        using (var connection = _db.Database.GetDbConnection())
+        {
+            await connection.OpenAsync();
 
-        //        //reader.Read(); // Read second row
-        //        //firstColumnObject = reader.GetValue(0);
-        //        //secondColumnObject = reader.GetValue(1);
-        //    }
-        //}
-        var x = _db.Vehicles.FromSqlRaw(Query).ToList();
-        return Query;
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = Query;
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    var columnNames = Enumerable.Range(0, reader.FieldCount)
+                                                .Select(reader.GetName)
+                                                .ToList();
+
+                    while (await reader.ReadAsync())
+                    {
+                        var expandoObj = new System.Dynamic.ExpandoObject() as IDictionary<string, object>;
+
+                        foreach (var columnName in columnNames)
+                        {
+                            expandoObj[columnName] = reader[columnName];
+                        }
+
+                        result.Add(expandoObj);
+                    }
+                }
+            }
+        }
+
+        return result;
 
     }
 }
