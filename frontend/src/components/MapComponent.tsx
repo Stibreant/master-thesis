@@ -23,16 +23,17 @@ const MapComponent = () => {
 
 
   useEffect(() => {
-    events((_) => { return }, (data) => setBusData(data), (name: string, args: any) => {
-      console.log(busData)
-      switch (name) {
+    events((_) => { return }, (data) => setBusData(data), (chatMessages) => {
+      let toolCall = chatMessages[chatMessages.length - 1].tool_calls[0];
+      const toolFunction = toolCall.function;
+      switch (toolCall.function.name) {
         case "filterData":
-          args = JSON.parse(args);
+          let args = JSON.parse(toolFunction.arguments);
           console.log("Filtering data", args.key, args.filter)
           setFilter(args.filter)
           break;
         case "heatData":
-          args = JSON.parse(args);
+          args = JSON.parse(toolFunction.arguments);
           setHeatmapFilter(args)
           break;
 
@@ -88,7 +89,7 @@ const MapComponent = () => {
           <BusMarkerComponent busData={displayedData} />
           <BusStopsComponent />
           <TestComponent />
-          <HeatMapComponent heatmapFilter={heatmapFilter}/>
+          <HeatMapComponent heatmapFilter={heatmapFilter} />
         </MapContainer>
       </div>
       {/* </div> */}
@@ -106,7 +107,7 @@ type HeatMapProps = {
   heatmapFilter: HeatMapFilter | null
 }
 
-const HeatMapComponent = ({heatmapFilter}: HeatMapProps) => {
+const HeatMapComponent = ({ heatmapFilter }: HeatMapProps) => {
   // const tester = [[58.914, 5.697275755646442, 1], [58.91, 5.697275755646442, 5], [58.92, 5.697275755646442, 10]]
   const [data, setData] = useState<any[]>([]);
 
@@ -121,7 +122,7 @@ const HeatMapComponent = ({heatmapFilter}: HeatMapProps) => {
     let busLine: number = 1008;
     if (heatmapFilter.busLine) {
       busLine = parseInt(heatmapFilter.busLine);
-    }  
+    }
     var params = new URLSearchParams();
     params.append('startTime', heatmapFilter.startTime);
     params.append('endTime', heatmapFilter.endTime);

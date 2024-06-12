@@ -3,7 +3,7 @@ import { Message } from "../components/ChatComponent";
 const URL = process.env.REACT_APP_BACKEND_URL ?? "http://localhost:5143"; //or whatever your backend port is
 class Connector {
     private connection: signalR.HubConnection;
-    public events: (onMessageReceived: (messages: string) => void, onDataReceived: (data: any) => void, onCallFunction: (name: string, args: any) => void) => void;
+    public events: (onMessageReceived: (chatMessages: Message[]) => void, onDataReceived: (data: any) => void, onCallFunction: (toolCall: any) => void) => void;
     static instance: Connector;
     constructor() {
         this.connection = new signalR.HubConnectionBuilder()
@@ -18,8 +18,8 @@ class Connector {
             this.connection.on("dataReceived", (data) => {
                 onDataReceived(data);
             });
-            this.connection.on("callFunction", (name:string, args: any) => {
-                onCallFunction(name, args);
+            this.connection.on("callFunction", (chatMessages: any[]) => {
+                onCallFunction(chatMessages);
             });
         };
     }

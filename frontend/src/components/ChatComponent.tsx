@@ -8,9 +8,13 @@ import filterDataSpec from "../functions/filterData";
 import heatDataSpec from "../functions/heatData";
 import QueryDataSpec from "../functions/queryData";
 
+const tools = [filterDataSpec, heatDataSpec, QueryDataSpec];
+
 export type Message = {
     role: string;
     content: string;
+    tool_call_id?: string;
+    name?: string;
 }
 
 const ChatComponent = () => {
@@ -18,26 +22,49 @@ const ChatComponent = () => {
     const [newMessage, setNewMessage] = useState<Message>();
     const { sendNewMessage, events } = Connector();
     useEffect(() => {
-        events((message) => {
-            let allMessages = [...messages, { role: "assistant", content: message }]
-            setMessages(allMessages)
-        }, (_) => { return }, (name, args) => {
-            if (name === "heatData" || name === "filterData") {
-                args = JSON.parse(args);
-                let allMessages = [...messages, { role: "assistant", content: `${args.description}` }]
-                setMessages(allMessages)
+        events((chatMessages) => {
+            setMessages(chatMessages)
+        }, (_) => { return }, (chatMessages) => {
+            let toolCall = chatMessages[chatMessages.length - 1].tool_calls[0];
+            let toolFunction = toolCall.function;
+            if (toolFunction.name === "heatData" || toolFunction.name === "filterData") {
+                let args = JSON.parse(toolFunction.arguments);
+                chatMessages[chatMessages.length - 1].content = args.description;
+                setMessages([...chatMessages, { role: "tool", content: ``, tool_call_id: toolCall.id, name: `${toolFunction.name}` }])
             }
-            else if (name === "QueryData") {
-                args = JSON.parse(args);
+            else if (toolFunction.name === "QueryData") {
+                let args = JSON.parse(toolFunction.arguments);
                 console.log("QueryData Called with args", args)
-                let allMessages = [...messages, { role: "assistant", content: `${args.description}` }]
-                setMessages(allMessages)
+                chatMessages[chatMessages.length - 1].content = args.description;
+                setMessages(chatMessages)
+                debugger;
+                queryData(args.sqlQuery, chatMessages).then(([data, allmessages]) => {
+                    debugger;
+                    let allMessages = [
+                        ...allmessages,
+                        { role: "tool", content: `Result from the Query: ${JSON.stringify(data)}`, tool_call_id: toolCall.id, name: `${toolFunction.name}` }
+                    ]
+                    setMessages(allMessages);
+                    sendNewMessage(allMessages, tools);
+                })
             }
-         });
-    }, [messages]);
+        });
+    }, []);
 
-    const MessageFromAI = (message: Message) => {
-        return message.role === "assistant";
+    const MessageFromUser = (message: Message) => {
+        return message.role === "user";
+    }
+
+    const queryData = async (query: string, allmessages: Message[]) => {
+        let response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/Data/Query`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: `"${query}"`
+        });
+        let data = await response.json();
+        return [data, allmessages];
     }
 
     const sendMessage = () => {
@@ -45,7 +72,6 @@ const ChatComponent = () => {
         var allmessages = messages.concat(newMessage);
         setMessages(allmessages);
         setNewMessage({ role: "user", content: "" });
-        let tools = [filterDataSpec, heatDataSpec, QueryDataSpec]
         sendNewMessage(allmessages, tools);
     }
 
@@ -53,8 +79,9 @@ const ChatComponent = () => {
         <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
             <div className="chatbox">
                 {messages.map((message: any, index: number) => {
+                    if (message.role === "tool" || message.content === "" || message.content === undefined) return null;
                     return (
-                        <div className={`messagebox ${MessageFromAI(message) ? '' : 'user-message'}`} key={index}>
+                        <div className={`messagebox ${MessageFromUser(message) ? 'user-message' : ''}`} key={index}>
                             <div style={{ whiteSpace: 'pre-wrap' }}><Markdown className="markdown" rehypePlugins={[rehypeHighlight]}>{message.content}</Markdown></div>
                         </div>
                     )

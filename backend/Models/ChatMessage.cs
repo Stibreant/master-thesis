@@ -6,6 +6,10 @@
 
         public string? Content { get; set; }
         public ToolCall[]? tool_calls { get; set; } = null;
+
+        public string? tool_call_id { get; set; } = null;
+
+        public string? name { get; set; } = null;
     }
 
     public class ToolCall
