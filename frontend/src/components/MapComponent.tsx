@@ -26,11 +26,11 @@ const MapComponent = () => {
     events((_) => { return }, (data) => setBusData(data), (chatMessages) => {
       let toolCall = chatMessages[chatMessages.length - 1].tool_calls[0];
       const toolFunction = toolCall.function;
+      let args: any;
       switch (toolCall.function.name) {
         case "filterData":
-          let args = JSON.parse(toolFunction.arguments);
-          console.log("Filtering data", args.key, args.filter)
-          setFilter(args.filter)
+          args = JSON.parse(toolFunction.arguments);
+          setFilter(args.filter);
           break;
         case "heatData":
           args = JSON.parse(toolFunction.arguments);
@@ -59,7 +59,7 @@ const MapComponent = () => {
           if (busData.length === 0 && data) { setBusData(data) }
         }).catch((error) => console.error(error));
     }
-  });
+  }, []);
 
   useEffect(() => {
     if (!filter) {

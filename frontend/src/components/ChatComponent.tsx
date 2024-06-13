@@ -21,34 +21,34 @@ const ChatComponent = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<Message>();
     const { sendNewMessage, events } = Connector();
+
     useEffect(() => {
         events((chatMessages) => {
             setMessages(chatMessages)
-        }, (_) => { return }, (chatMessages) => {
-            let toolCall = chatMessages[chatMessages.length - 1].tool_calls[0];
-            let toolFunction = toolCall.function;
-            if (toolFunction.name === "heatData" || toolFunction.name === "filterData") {
-                let args = JSON.parse(toolFunction.arguments);
-                chatMessages[chatMessages.length - 1].content = args.description;
-                setMessages([...chatMessages, { role: "tool", content: ``, tool_call_id: toolCall.id, name: `${toolFunction.name}` }])
-            }
-            else if (toolFunction.name === "QueryData") {
-                let args = JSON.parse(toolFunction.arguments);
-                console.log("QueryData Called with args", args)
-                chatMessages[chatMessages.length - 1].content = args.description;
-                setMessages(chatMessages)
-                debugger;
-                queryData(args.sqlQuery, chatMessages).then(([data, allmessages]) => {
-                    debugger;
-                    let allMessages = [
-                        ...allmessages,
-                        { role: "tool", content: `Result from the Query: ${JSON.stringify(data)}`, tool_call_id: toolCall.id, name: `${toolFunction.name}` }
-                    ]
-                    setMessages(allMessages);
-                    sendNewMessage(allMessages, tools);
-                })
-            }
-        });
+        },
+            (_) => { return },
+            (chatMessages) => {
+                let toolCall = chatMessages[chatMessages.length - 1].tool_calls[0];
+                let toolFunction = toolCall.function;
+                if (toolFunction.name === "heatData" || toolFunction.name === "filterData") {
+                    let args = JSON.parse(toolFunction.arguments);
+                    chatMessages[chatMessages.length - 1].content = args.description;
+                    setMessages([...chatMessages, { role: "tool", content: ``, tool_call_id: toolCall.id, name: `${toolFunction.name}` }])
+                }
+                else if (toolFunction.name === "QueryData") {
+                    let args = JSON.parse(toolFunction.arguments);
+                    chatMessages[chatMessages.length - 1].content = args.description;
+                    setMessages(chatMessages)
+                    queryData(args.sqlQuery, chatMessages).then(([data, allmessages]) => {
+                        let allMessages = [
+                            ...allmessages,
+                            { role: "tool", content: `Result from the Query: ${JSON.stringify(data)}`, tool_call_id: toolCall.id, name: `${toolFunction.name}` }
+                        ]
+                        setMessages(allMessages);
+                        sendNewMessage(allMessages, tools);
+                    })
+                }
+            });
     }, []);
 
     const MessageFromUser = (message: Message) => {
@@ -102,7 +102,6 @@ const ChatComponent = () => {
                 <button onClick={sendMessage}>Send</button>
             </div>
         </div>
-
     )
 }
 

@@ -4,7 +4,7 @@ const QueryDataSpec = {
     "type": "function",
     "function": {
         "name": "QueryData",
-    "description": "Use this function to run a Raw SQL query the backend. For example a user may ask for the average delay of a bus line between two dates. Then this function should be called with the corresponding SQL query, for an SQLite database. The query should be a SELECT statement. The result of the query is returned to the frontend.",
+    "description": "Use this function to run a Raw SQL query the backend. For example a user may ask for the average delay of a bus line between two dates. Then this function should be called with the corresponding SQL query, for an SQLite database. The query should be a SELECT statement. The result of the query is returned to the frontend. If the query fails do not reattempt the Function. Only use this to get New data from the databaes.",
         "parameters": {
             "type": "object",
             "properties": {

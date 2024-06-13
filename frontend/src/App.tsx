@@ -15,7 +15,6 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout/>}>
           <Route index element={<MapPage />} />
-          <Route path="chat" element={<ChatComponent />} />
         </Route>
       </Routes>
     </BrowserRouter>
