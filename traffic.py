@@ -15,13 +15,6 @@ timezone_offset = 1  # European Standard Time (UTC+01:00)
 tzinfo = timezone(timedelta(hours=timezone_offset))
 
 def find_specific_journey(engine: Engine, line):
-    # with engine.connect() as conn:
-    #     # rows = conn.execute(text(f'SELECT * FROM Vehicles WHERE "MonitoredVehicleJourney.LineRef"={line} AND "MonitoredVehicleJourney.MonitoredCall.StopPointRef" = "{first_stop}"')).fetchall()
-    #     rows = conn.execute(text(f'SELECT * FROM Vehicles WHERE "MonitoredVehicleJourney.LineRef"={line} AND "MonitoredVehicleJourney.MonitoredCall.StopPointRef" = "{first_stop}"')).fetchall()
-    #     # Get row with latest timestamp
-    #     latest = max(rows, key=lambda x: x[1])
-
-    # TODO: Check if we can improve preformance getting the last date and then selecting the specific journey. This may involve some indexing
     data = pd.read_sql_query(f'SELECT * FROM Vehicles WHERE "MonitoredVehicleJourney.LineRef"={line}', engine)
     hasStart = data[data["MonitoredVehicleJourney.OriginRef"] == data["MonitoredVehicleJourney.MonitoredCall.StopPointRef"]].drop_duplicates(subset="MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef", keep="first")
     # select the specific journey that is at it's destination stop
@@ -78,12 +71,6 @@ def generate_platform_table(engine: Engine):
 
 
 def get_platforms_info(engine: Engine, locations: pd.DataFrame):
-    # with engine.connect() as conn:
-    #     # print(conn.execute(text("PRAGMA table_info(Platforms);")).fetchall())
-    #     platform = pd.read_sql_query(f'SELECT * FROM Platforms WHERE nsr_id="{platform_id}"', engine)
-    #     # platform = conn.execute(text(f'SELECT * FROM Platforms WHERE nsr_id="{platform_id}"')).one()
-    #     ## Fetch platforms if this happens
-    # return platform
 
     for _, location in locations.iterrows():
         yield pd.read_sql_query(f'SELECT * FROM Platforms WHERE nsr_id="{location["MonitoredVehicleJourney.MonitoredCall.StopPointRef"]}"', engine)
@@ -93,44 +80,11 @@ def get_all_locations(engine: Engine, service_id):
                         FROM Vehicles
                         WHERE "MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef" = "{service_id}"
                       ''', engine)
-    # with engine.connect() as conn:
-    #     locations = conn.execute(text(f'''SELECT *
-    #                         FROM Vehicles
-    #                         WHERE "MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef" = "{service_id}"
-    #                       ''')).fetchall()
     return locations
 
-        # z = conn.execute(text(f'''SELECT "MonitoredVehicleJourney.MonitoredCall.StopPointRef", "RecordedAtTime", "MonitoredVehicleJourney.LineRef", "MonitoredVehicleJourney.VehicleRef" 
-        #                     FROM Vehicles 
-        #                     WHERE "RecordedAtTime" >= "{timestamp}" AND RecordedAtTime < "{endtimestamp}" AND "MonitoredVehicleJourney.LineRef"= {line} AND "MonitoredVehicleJourney.VehicleRef" = {vehicle}
-        #                     ''')).fetchall()
 
 def get_all_stops(engine: Engine, locations: pd.DataFrame):
-
-    # Except if locations is not sored  by timestamp
-    # for i, _ in enumerate(locations):
-    #     if i == len(locations) - 1:
-    #         break
-
-    #     if locations[i][1] > locations[i+1][1]:
-    #         raise ValueError("Locations are not sorted by timestamp")
-        
-    # stopRefs = []
-    # for index, location in locations.iterrows():
-    #     if len(stopRefs) == 0:
-    #         stopRefs.append(location["MonitoredVehicleJourney.MonitoredCall.StopPointRef"])
-    #     elif location["MonitoredVehicleJourney.MonitoredCall.StopPointRef"] != stopRefs[-1]:
-    #         stopRefs.append(location["MonitoredVehicleJourney.MonitoredCall.StopPointRef"])
-
     stopRefs = locations.drop_duplicates(subset="MonitoredVehicleJourney.MonitoredCall.StopPointRef", keep="first")
-
-    
-    # stops = []
-    # for stopRef in stopRefs:
-    #     stops.append(get_platform(engine, stopRef))
-    # return pd.DataFrame(stops)
-    
-    # return pd.DataFrame(get_platform(engine, stopRef) for stopRef in stopRefs)
     return pd.DataFrame(pd.concat(get_platforms_info(engine, stopRefs)))
 
 PROBLEMATIC_STOPS_LIST = [
@@ -144,7 +98,6 @@ PROBLEMATIC_STOPS_LIST = [
     ("NSR:Quay:48780", "NSR:Quay:48106"),
     ("NSR:Quay:48781", "NSR:Quay:48107"),
     # Sentrum / Vaktapoteket
-    # ("NSR:Quay:46973", "NSR:Quay:46957")
     # 3
     # 4
     ("NSR:Quay:45283", "NSR:Quay:44997")
@@ -168,7 +121,6 @@ def split_stops(stops: pd.DataFrame) -> list[pd.DataFrame]:
     legs = []
     leg = pd.DataFrame(columns=stops.columns)
     end_problematic_route = []
-    # TODO This is a bit of a mess, but it works. It should be refactored and optimized
     for index, stop in stops.iterrows():
         stop = pd.DataFrame(stop).T
         # End of a problematic portion of the route, add the stop and continue as normal
@@ -262,7 +214,7 @@ def call_google_api(legs: list[pd.DataFrame]):
         print("Origin ", leg.iloc[0]["name"])
         print("Destination ",leg.iloc[-1]["name"])
         responses.append(get_route(origin, destination, coords))
-        # print(leg["nsr_id"])
+
     return responses
 
 def save_responses_to_db(engine: Engine, responses , specific_journey: pd.DataFrame):
@@ -271,7 +223,6 @@ def save_responses_to_db(engine: Engine, responses , specific_journey: pd.DataFr
         trans = conn.begin()
         date = datetime.now(tzinfo)
         destination = specific_journey["MonitoredVehicleJourney.DestinationRef"].values[0]
-        # try:
         for i, response in enumerate(responses):
             # Create DataFrame from response and legs
             try:
@@ -281,10 +232,6 @@ def save_responses_to_db(engine: Engine, responses , specific_journey: pd.DataFr
             except:
                 pass
         trans.commit()
-        # except Exception as e:
-        #     print("FATAL")
-        #     print(e)
-        #     trans.rollback()
 
 def main_traffic(engine: Engine, scheduler: scheduler ,lines_to_check: list[int]):
         # check if date is between 06:00 and 18:00
@@ -316,10 +263,6 @@ def specific_journey_pipeline(engine: Engine ,specific_journey: pd.DataFrame):
     locations = get_all_locations(engine, specific_journey["MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef"].values[0])
 
     stops = get_all_stops(engine, locations)
-
-    # encode polyline from lat, long
-    # print(polyline.encode(stops[["latitude", "longitude"]].values.tolist()))
-    # print(polyline.encode([(x['latitude'], x['longitude']) for x in stops]))
     
     legs = split_stops(stops)
 
@@ -341,17 +284,9 @@ def specific_journey_pipeline(engine: Engine ,specific_journey: pd.DataFrame):
     for i in range(len(legs) - 1, -1, -1):
         legs_reversed.append(legs[i].iloc[::-1])
 
-    # for leg in legs:
-    #     print(leg["name"])
-    # for leg in legs_reversed:
-    #     print(leg["name"])
-
     print(f"Getting routes for {specific_journey['MonitoredVehicleJourney.LineRef'].values[0]}")
     responses = call_google_api(legs)
     save_responses_to_db(engine, responses, specific_journey)
-
-    # responses = call_google_api(legs_reversed)
-    # save_responses_to_db(engine, responses, reversed_specifc_journey)
 
 def create_traffic_table(engine: Engine):
     lines_to_check = [1033, 1007, 1008, 1012]
@@ -366,12 +301,3 @@ if __name__ == "__main__":
     print(lines_to_watch)
     my_scheduler = sched.scheduler(time.time, time.sleep)
     main_traffic(engine, my_scheduler, lines_to_watch)
-    
-
-
-# Line 6
-# firstStop = "NSR:Quay:46963"
-# line = 1007
-# vehicle = 2247
-# timestamp = '2024-02-02T17:27:16+01:00'
-# endtimestamp = '2024-02-02T19:27:16+01:00'

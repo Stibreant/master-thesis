@@ -1,8 +1,6 @@
 using backend;
 using backend.Hubs;
 using backend.Services;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 

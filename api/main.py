@@ -21,11 +21,7 @@ class Line(Resource):
 	def get(self, line):
 		data = get_data(line)
 		return jsonify({'data': data})
-	# Corresponds to POST request 
-	# def post(self): 
-		
-	# 	data = request.get_json()	 # status code 
-	# 	return jsonify({'data': data})
+
 
 
 # adding the defined resources along with their corresponding urls 

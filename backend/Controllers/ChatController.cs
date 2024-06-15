@@ -1,12 +1,8 @@
-﻿using backend.DTO;
-using backend.Hubs;
+﻿using backend.Hubs;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Data.SqlClient;
-using System.Text;
-using System.Text.Json;
 
 namespace backend.Controllers
 {

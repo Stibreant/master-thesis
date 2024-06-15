@@ -1,15 +1,10 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using ADO.Net;
 using Microsoft.EntityFrameworkCore;
 using backend.Hubs;
-using System.Web;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
-using System;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System.Runtime.CompilerServices;
 
 namespace backend.Controllers;
 
@@ -35,8 +30,6 @@ public class DataController : ControllerBase
     [HttpPost("", Name = "PostAsync")]
     public async Task<string> PostAsync([FromBody] Vehicle[] DatedframeId)
     {
-        //_logger.LogInformation(JsonSerializer.Serialize(DatedframeId));
-        //_logger.LogInformation(DatedframeId);
         _memoryCache.Set("test", DatedframeId);
         await _dataHub.Clients.All.SendAsync("dataReceived", DatedframeId);
         return "Success";
@@ -54,8 +47,6 @@ public class DataController : ControllerBase
     [HttpGet("latest", Name = "GetLatestAsync")]
     public Vehicle[]? GetLatestAsync()
     {
-        //Vehicle[] lines = _db.Vehicles.Where(v => v.ResponseTimestamp == _db.Vehicles.Max(v => v.ResponseTimestamp)).ToArray();
-        //return JsonSerializer.Serialize(lines);
         return _memoryCache.Get<Vehicle[]>("test");
     }
 
@@ -70,7 +61,6 @@ public class DataController : ControllerBase
             return true;
         };
 
-        // var client = new HttpClient(handler);
         HttpClient client = new HttpClient(handler);
         client.BaseAddress = new Uri("https://api.kolumbus.no");
         string prefix = "KOL:Line:8_";
@@ -89,16 +79,15 @@ public class DataController : ControllerBase
     }
 
     [HttpGet("TrafficData/{line}", Name = "GetTrafficData")]
-    public async Task<IEnumerable<dynamic>> GetTrafficData(int line, [FromQuery] string startTime, [FromQuery] string endTime)
+    public IEnumerable<dynamic> GetTrafficData(int line, [FromQuery] string startTime, [FromQuery] string endTime)
     {
-        Console.WriteLine(startTime + " " + endTime);
         if (startTime == null || endTime == null)
         {
             return Enumerable.Empty<dynamic>();
         }
         var vehicles = _db.Vehicles
             .Where(v => v.MonitoredVehicleJourneyLineRef == line.ToString() && v.MonitoredVehicleJourneyFramedVehicleJourneyRefDatedVehicleJourneyRef != null
-            && v.RecordedAtTime.CompareTo(startTime) > 0 && v.RecordedAtTime.CompareTo(endTime) < 0)
+            && v.RecordedAtTime!.CompareTo(startTime) > 0 && v.RecordedAtTime.CompareTo(endTime) < 0)
             .Take(10000)
             .Select(v => new
             {
@@ -113,7 +102,6 @@ public class DataController : ControllerBase
             .ToList()
             .GroupBy(v => v.Key)
             .ToList();
-        Console.WriteLine(vehicles.Count());
         var groups = new List<dynamic>();
         for (int i = 0; i < vehicles.Count(); i++)
         {
@@ -127,7 +115,6 @@ public class DataController : ControllerBase
     [HttpPost("Query", Name = "QueryTrafficData")]
     public async Task<IEnumerable<dynamic>> QueryTrafficData([FromBody] string Query)
     {
-       Console.WriteLine(Query);
         var result = new List<dynamic>();
 
         using (var connection = _db.Database.GetDbConnection())

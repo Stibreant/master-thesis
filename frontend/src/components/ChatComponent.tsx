@@ -79,7 +79,7 @@ const ChatComponent = () => {
         <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
             <div className="chatbox">
                 {messages.map((message: any, index: number) => {
-                    if (message.role === "tool" || message.content === "" || message.content === undefined) return null;
+                    if ( message.content === "" || message.content === undefined) return null;
                     return (
                         <div className={`messagebox ${MessageFromUser(message) ? 'user-message' : ''}`} key={index}>
                             <div style={{ whiteSpace: 'pre-wrap' }}><Markdown className="markdown" rehypePlugins={[rehypeHighlight]}>{message.content}</Markdown></div>
